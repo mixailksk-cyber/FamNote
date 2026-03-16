@@ -1,0 +1,207 @@
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Share, InteractionManager } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import Header from './BL04_Header';
+import ColorPickerModal from './BL08_ColorPickerModal';
+import { BRAND_COLOR, NOTE_COLORS, TITLE_MAX_LENGTH, NOTE_MAX_LENGTH, getBrandColor } from './BL02_Constants';
+
+const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigationStack, onSave, setCurrentScreen, setNavigationStack, setSearchQuery, insets, searchQuery, setCurrentFolder }) => {
+  const brandColor = getBrandColor(settings);
+  const [note, setNote] = useState(selectedNote ? { ...selectedNote } : { 
+    id: Date.now() + '', 
+    title: '', 
+    content: '', 
+    color: brandColor, 
+    folder: currentFolder, 
+    createdAt: Date.now(), 
+    updatedAt: Date.now(), 
+    deleted: false, 
+    pinned: false 
+  });
+  const [showColor, setShowColor] = useState(false);
+  const contentInputRef = useRef(null);
+  const comingFromSearch = useMemo(() => navigationStack[navigationStack.length - 1] === 'search', [navigationStack]);
+  const hasChanges = useMemo(() => {
+    if (!selectedNote) return note.title !== '' || note.content !== '' || note.color !== brandColor;
+    return selectedNote.title !== note.title || selectedNote.content !== note.content || selectedNote.color !== note.color;
+  }, [note, selectedNote, brandColor]);
+  const isInTrash = note.folder === 'Корзина' || note.deleted === true;
+  const isNewNote = !selectedNote;
+
+  useEffect(() => {
+    if (isNewNote) {
+      const focusTask = InteractionManager.runAfterInteractions(() => {
+        setTimeout(() => {
+          if (contentInputRef.current) {
+            contentInputRef.current.focus();
+          }
+        }, 100);
+      });
+      
+      return () => focusTask.cancel();
+    }
+  }, [isNewNote]);
+
+  const handleShare = async () => {
+    try {
+      const message = note.title ? `${note.title}\n\n${note.content}` : note.content;
+      await Share.share({ message, title: note.title || 'Заметка' });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handlePermanentDelete = () => {
+    const updatedNotes = notes.filter(n => n.id !== note.id);
+    onSave(updatedNotes);
+    setNavigationStack(prev => prev.slice(0, -1));
+    setCurrentScreen('notes');
+    setCurrentFolder('Корзина');
+  };
+
+  const handleDelete = () => {
+    if (isInTrash) {
+      handlePermanentDelete();
+      return;
+    }
+    const updatedNote = { ...note, folder: 'Корзина', deleted: true, pinned: false, updatedAt: Date.now() };
+    onSave(updatedNote);
+    setNavigationStack(prev => prev.slice(0, -1));
+    if (comingFromSearch) {
+      setCurrentScreen('notes'); 
+      setCurrentFolder(note.folder); 
+      setSearchQuery('');
+    } else {
+      const prevScreen = navigationStack[navigationStack.length - 1] || 'notes';
+      setCurrentScreen(prevScreen);
+    }
+  };
+
+  const handleBack = () => {
+    if (hasChanges) {
+      Alert.alert(
+        'Несохраненные изменения',
+        'У вас есть несохраненные изменения. Выйти без сохранения?',
+        [
+          { text: 'Отмена', style: 'cancel' },
+          { 
+            text: 'Выйти', 
+            onPress: () => {
+              setNavigationStack(prev => prev.slice(0, -1));
+              if (comingFromSearch) {
+                setCurrentScreen('search');
+                setTimeout(() => { setSearchQuery(searchQuery); }, 100);
+              } else {
+                const prevScreen = navigationStack[navigationStack.length - 1] || 'notes';
+                setCurrentScreen(prevScreen);
+              }
+            }
+          }
+        ]
+      );
+    } else {
+      setNavigationStack(prev => prev.slice(0, -1));
+      if (comingFromSearch) {
+        setCurrentScreen('search');
+        setTimeout(() => { setSearchQuery(searchQuery); }, 100);
+      } else {
+        const prevScreen = navigationStack[navigationStack.length - 1] || 'notes';
+        setCurrentScreen(prevScreen);
+      }
+    }
+  };
+
+  const handleSave = () => {
+    if (hasChanges) onSave({ ...note, updatedAt: Date.now() });
+    else onSave(note);
+  };
+
+  const buttonSize = 70;
+  const buttonBottom = insets.bottom + 24;
+  const buttonRight = 24;
+
+  return (
+    <KeyboardAvoidingView 
+      style={{ flex: 1, backgroundColor: 'white' }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <Header 
+        title="Редактирование" 
+        showBack 
+        onBack={handleBack} 
+        rightIcon="settings" 
+        onRightPress={() => setCurrentScreen('settings')} 
+        showPalette 
+        onPalettePress={() => setShowColor(true)} 
+        showSearch={false} 
+        brandColor={brandColor}
+      >
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity onPress={handleShare} style={{ marginRight: 16 }}>
+            <MaterialIcons name="share" size={24} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDelete}>
+            <MaterialIcons name="delete" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+      </Header>
+
+      <View style={{ flex: 1 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+          <TextInput 
+            style={{ fontSize: settings.fontSize + 2, fontWeight: 'bold', paddingVertical: 8, color: '#333' }} 
+            placeholder="Заголовок" 
+            placeholderTextColor="#999" 
+            maxLength={TITLE_MAX_LENGTH} 
+            value={note.title} 
+            onChangeText={t => setNote({ ...note, title: t })}
+            editable={!isInTrash}
+          />
+          <View style={{ height: 2, backgroundColor: note.color || brandColor, width: '100%', marginTop: 4 }} />
+        </View>
+
+        <TextInput 
+          ref={contentInputRef}
+          style={{ flex: 1, fontSize: settings.fontSize, paddingHorizontal: 16, paddingVertical: 12, textAlignVertical: 'top' }} 
+          placeholder="Текст заметки..." 
+          placeholderTextColor="#999" 
+          multiline 
+          maxLength={NOTE_MAX_LENGTH} 
+          value={note.content} 
+          onChangeText={t => setNote({ ...note, content: t })}
+          editable={!isInTrash}
+        />
+      </View>
+
+      <TouchableOpacity 
+        style={{ 
+          position: 'absolute', 
+          bottom: buttonBottom, 
+          right: buttonRight, 
+          width: buttonSize, 
+          height: buttonSize, 
+          borderRadius: buttonSize / 2, 
+          backgroundColor: note.color || brandColor, 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          elevation: 5, 
+          zIndex: 1000 
+        }} 
+        onPress={handleSave}
+      >
+        <MaterialIcons name="check" size={36} color="white" />
+      </TouchableOpacity>
+
+      <ColorPickerModal 
+        visible={showColor} 
+        onClose={() => setShowColor(false)} 
+        selectedColor={note.color} 
+        onSelect={(color) => setNote({ ...note, color, updatedAt: Date.now() })} 
+        settings={settings}
+      />
+    </KeyboardAvoidingView>
+  );
+};
+
+export default EditNoteScreen;

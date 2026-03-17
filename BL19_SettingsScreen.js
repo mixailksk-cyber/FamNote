@@ -217,19 +217,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
     }
   };
 
-  const showLogs = () => {
-    Alert.alert(
-      '📋 Логи операций',
-      logs.map(log => 
-        `[${log.time}] ${log.message}\n${log.data ? log.data : ''}`
-      ).join('\n\n') || 'Логов нет',
-      [
-        { text: 'Очистить', onPress: () => setLogs([]) },
-        { text: 'OK' }
-      ]
-    );
-  };
-
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }}>
       <Header 
@@ -335,21 +322,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
             >
               <MaterialIcons name="restore" size={24} color="white" style={{ marginRight: 8 }} />
               <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Восстановить</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={{ 
-                backgroundColor: '#4A4A4A', 
-                padding: 12, 
-                borderRadius: 8, 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                justifyContent: 'center'
-              }} 
-              onPress={showLogs}
-            >
-              <MaterialIcons name="bug-report" size={20} color="white" style={{ marginRight: 8 }} />
-              <Text style={{ color: 'white', fontSize: 14 }}>Показать логи</Text>
             </TouchableOpacity>
           </View>
         </View>

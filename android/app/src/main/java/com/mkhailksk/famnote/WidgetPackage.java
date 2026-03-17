@@ -1,4 +1,4 @@
-package com.mkhailksk.famnote;
+package com.mkhailksk.famnotes; // Изменено с famnote на famnotes
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;

@@ -1,7 +1,7 @@
 // =====================================================
 // FILE: BL19_SettingsScreen.js
 // =====================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Clipboard from 'expo-clipboard';
@@ -10,17 +10,91 @@ import Header from './BL04_Header';
 import { NOTE_COLORS, getBrandColor } from './BL02_Constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
+import { Linking } from 'react-native';
 
 let Sharing;
 if (Platform.OS !== 'web') {
   try {
     Sharing = require('expo-sharing');
-  } catch (e) {}
+  } catch (e) {
+    console.log('Sharing not available:', e);
+  }
 }
 
 const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, notes, folders, onBrandColorChange }) => {
   const fontSizeOptions = [14, 16, 18, 20, 22, 24];
   const brandColor = getBrandColor(settings);
+  const [permissionStatus, setPermissionStatus] = useState(null);
+  const [fsInfo, setFsInfo] = useState({});
+
+  // Диагностика файловой системы при загрузке
+  useEffect(() => {
+    checkFileSystem();
+  }, []);
+
+  const checkFileSystem = async () => {
+    try {
+      const info = {
+        platform: Platform.OS,
+        platformVersion: Platform.Version,
+        isWeb: Platform.OS === 'web',
+      };
+
+      if (Platform.OS !== 'web') {
+        // Проверяем директории
+        info.documentDirectory = FileSystem.documentDirectory || 'null';
+        info.cacheDirectory = FileSystem.cacheDirectory || 'null';
+        info.bundleDirectory = FileSystem.bundleDirectory || 'null';
+        
+        // Проверяем права на запись
+        try {
+          const testFile = FileSystem.cacheDirectory + 'test.txt';
+          await FileSystem.writeAsStringAsync(testFile, 'test');
+          const testRead = await FileSystem.readAsStringAsync(testFile);
+          await FileSystem.deleteAsync(testFile);
+          info.canWrite = true;
+          info.canRead = true;
+          info.testData = testRead;
+        } catch (e) {
+          info.canWrite = false;
+          info.writeError = e.message;
+        }
+
+        // Проверяем разрешения MediaLibrary для Android 13+
+        if (Platform.OS === 'android' && parseInt(Platform.Version, 10) >= 33) {
+          const { status, granted } = await MediaLibrary.getPermissionsAsync();
+          info.mediaLibraryStatus = status;
+          info.mediaLibraryGranted = granted;
+        }
+
+        // Проверяем Sharing
+        if (Sharing) {
+          info.sharingAvailable = await Sharing.isAvailableAsync();
+        }
+      }
+
+      setFsInfo(info);
+      console.log('📁 File System Diagnostics:', JSON.stringify(info, null, 2));
+      
+      // Показываем предупреждение если есть проблемы
+      if (!info.canWrite) {
+        Alert.alert(
+          '⚠️ Проблема с файловой системой',
+          `Не удается записать файлы. Будет использован буфер обмена.\n\nОшибка: ${info.writeError || 'неизвестна'}`,
+          [
+            { text: 'Понятно' },
+            { 
+              text: 'Диагностика', 
+              onPress: () => Alert.alert('Диагностика', JSON.stringify(info, null, 2))
+            }
+          ]
+        );
+      }
+    } catch (e) {
+      console.log('Error checking file system:', e);
+    }
+  };
 
   const formatDateForFilename = () => {
     const date = new Date();
@@ -34,14 +108,34 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
     if (onBrandColorChange) onBrandColorChange(color);
   };
 
+  const requestPermissions = async () => {
+    if (Platform.OS === 'android' && parseInt(Platform.Version, 10) >= 33) {
+      try {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        console.log('📸 MediaLibrary permission requested:', status);
+        setPermissionStatus(status);
+        return status === 'granted';
+      } catch (e) {
+        console.log('Error requesting permissions:', e);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleBackup = async () => {
     try {
       const backup = { notes, folders, settings };
       const backupStr = JSON.stringify(backup, null, 2);
       const fileName = `FamNote_Backup_${formatDateForFilename()}.bak`;
 
+      console.log('💾 Starting backup process...');
+      console.log('📦 Backup size:', backupStr.length, 'bytes');
+      console.log('📁 FileSystem info:', fsInfo);
+
       // Web версия
       if (Platform.OS === 'web') {
+        console.log('🌐 Web platform - using blob download');
         const blob = new Blob([backupStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -53,27 +147,96 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
         return;
       }
 
-      // Android версия
+      // Android версия - пробуем разные способы
+      console.log('📱 Android platform - trying file write');
+      
+      // Способ 1: Пробуем cacheDirectory
       try {
-        const fileUri = FileSystem.cacheDirectory + fileName;
-        await FileSystem.writeAsStringAsync(fileUri, backupStr);
+        console.log('Attempt 1: Writing to cacheDirectory');
+        const cacheDir = FileSystem.cacheDirectory;
+        console.log('cacheDirectory:', cacheDir);
         
-        if (Sharing && await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'application/json',
-            dialogTitle: 'Сохранить резервную копию'
-          });
-        } else {
-          Alert.alert('✅ Успех', 'Резервная копия создана во временной папке');
+        if (!cacheDir) {
+          throw new Error('cacheDirectory is null');
         }
-      } catch (writeError) {
-        console.log('Write error:', writeError);
-        await Clipboard.setStringAsync(backupStr);
-        Alert.alert('📋 Скопировано', 'Данные скопированы в буфер обмена');
+
+        const fileUri = cacheDir + fileName;
+        console.log('File URI:', fileUri);
+        
+        await FileSystem.writeAsStringAsync(fileUri, backupStr, {
+          encoding: FileSystem.EncodingType.UTF8
+        });
+        console.log('✅ File written successfully');
+
+        // Проверяем что файл создался
+        const fileInfo = await FileSystem.getInfoAsync(fileUri);
+        console.log('File info:', fileInfo);
+
+        if (fileInfo.exists) {
+          console.log('✅ File exists, size:', fileInfo.size);
+          
+          // Пробуем поделиться
+          if (Sharing && await Sharing.isAvailableAsync()) {
+            console.log('Sharing available, attempting to share');
+            await Sharing.shareAsync(fileUri, {
+              mimeType: 'application/json',
+              dialogTitle: 'Сохранить резервную копию'
+            });
+          } else {
+            Alert.alert('✅ Успех', 'Резервная копия создана во временной папке');
+          }
+          return;
+        }
+      } catch (cacheError) {
+        console.log('❌ Attempt 1 failed:', cacheError.message);
+        console.log('Error details:', cacheError);
+        
+        // Способ 2: Пробуем documentDirectory
+        try {
+          console.log('Attempt 2: Writing to documentDirectory');
+          const docDir = FileSystem.documentDirectory;
+          console.log('documentDirectory:', docDir);
+          
+          if (!docDir) {
+            throw new Error('documentDirectory is null');
+          }
+
+          const fileUri = docDir + fileName;
+          await FileSystem.writeAsStringAsync(fileUri, backupStr);
+          console.log('✅ File written to documentDirectory');
+
+          const fileInfo = await FileSystem.getInfoAsync(fileUri);
+          if (fileInfo.exists) {
+            if (Sharing && await Sharing.isAvailableAsync()) {
+              await Sharing.shareAsync(fileUri, {
+                mimeType: 'application/json',
+                dialogTitle: 'Сохранить резервную копию'
+              });
+            } else {
+              Alert.alert('✅ Успех', 'Резервная копия создана');
+            }
+            return;
+          }
+        } catch (docError) {
+          console.log('❌ Attempt 2 failed:', docError.message);
+        }
       }
+
+      // Если все способы не сработали - копируем в буфер
+      console.log('⚠️ All file write attempts failed, falling back to clipboard');
+      await Clipboard.setStringAsync(backupStr);
+      Alert.alert(
+        '📋 Скопировано в буфер', 
+        'Не удалось создать файл. Данные скопированы в буфер обмена.\n\n' +
+        'Диагностика:\n' +
+        `cacheDirectory: ${fsInfo.cacheDirectory || 'null'}\n` +
+        `canWrite: ${fsInfo.canWrite || false}\n` +
+        `writeError: ${fsInfo.writeError || 'none'}`
+      );
+
     } catch (e) {
-      console.log('Backup error:', e);
-      Alert.alert('❌ Ошибка', 'Не удалось создать резервную копию');
+      console.log('💥 Fatal backup error:', e);
+      Alert.alert('❌ Ошибка', `Не удалось создать резервную копию: ${e.message}`);
     }
   };
 
@@ -87,6 +250,7 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
       if (result.canceled) return;
       
       const fileUri = result.assets[0].uri;
+      console.log('Restore file URI:', fileUri);
       
       let content;
       if (Platform.OS === 'web') {
@@ -218,6 +382,32 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
             >
               <MaterialIcons name="restore" size={24} color="white" style={{ marginRight: 8 }} />
               <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Восстановить</Text>
+            </TouchableOpacity>
+
+            {/* Кнопка диагностики */}
+            <TouchableOpacity 
+              style={{ 
+                backgroundColor: '#4A4A4A', 
+                padding: 12, 
+                borderRadius: 8, 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                marginTop: 8
+              }} 
+              onPress={() => {
+                Alert.alert(
+                  '📊 Диагностика ФС',
+                  JSON.stringify(fsInfo, null, 2),
+                  [
+                    { text: 'OK' },
+                    { text: 'Проверить снова', onPress: checkFileSystem }
+                  ]
+                );
+              }}
+            >
+              <MaterialIcons name="bug-report" size={20} color="white" style={{ marginRight: 8 }} />
+              <Text style={{ color: 'white', fontSize: 14 }}>Диагностика</Text>
             </TouchableOpacity>
           </View>
         </View>

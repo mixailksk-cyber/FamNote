@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="#4D000000"
+    android:background="#33000000"  <!-- Еще более прозрачный (20% непрозрачности) -->
     android:gravity="center_vertical">
 
     <TextView

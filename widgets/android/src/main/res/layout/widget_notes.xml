@@ -5,17 +5,37 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="#80000000"
-    android:gravity="center">
+    android:background="#4D000000"
+    android:gravity="center_vertical">
 
     <TextView
-        android:id="@+id/widget_text"
-        android:layout_width="wrap_content"
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="FamNote"
         android:textSize="16sp"
         android:textColor="#FFFFFF"
         android:textStyle="bold"
-        android:gravity="center" />
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/widget_notes_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="• Заметка 1\n• Заметка 2\n• Заметка 3"
+        android:textSize="14sp"
+        android:textColor="#FFFFFF"
+        android:lineSpacingExtra="4dp" />
+
+    <TextView
+        android:id="@+id/widget_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Нажмите чтобы открыть"
+        android:textSize="11sp"
+        android:textColor="#80FFFFFF"
+        android:gravity="center"
+        android:layout_marginTop="4dp" />
 
 </LinearLayout>

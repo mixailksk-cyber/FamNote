@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "FamNote",
-    "slug": "famnote",
+    "name": "FamNotes",
+    "slug": "famnotes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mkhailksk.famnote"
+      "bundleIdentifier": "com.mkhailksk.famnotes"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +22,14 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.mkhailksk.famnote"
+      "package": "com.mkhailksk.famnotes",
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/icon.png"
@@ -41,7 +48,14 @@
           ]
         }
       ],
-      "./plugins/withWidgetAndroid"
+      "./plugins/withWidgetAndroid",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Разрешите FamNotes доступ к фото для сохранения резервных копий",
+          "savePhotosPermission": "Разрешите FamNotes сохранять файлы на устройство"
+        }
+      ]
     ]
   }
 }

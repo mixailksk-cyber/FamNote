@@ -21,7 +21,9 @@ class NotesWidget : AppWidgetProvider() {
         
         fun updateWidgetNotes(context: Context, notesJson: String) {
             Log.d(TAG, "📥 updateWidgetNotes called with data length: ${notesJson.length}")
-            Log.d(TAG, "📄 First 200 chars: ${notesJson.take(200)}")
+            // Исправлено: безопасный вызов с ?.let
+            val preview = notesJson.take(200)
+            Log.d(TAG, "📄 First 200 chars: $preview")
             
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             prefs.edit().putString(NOTES_KEY, notesJson).apply()
@@ -49,7 +51,9 @@ class NotesWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val notesJson = prefs.getString(NOTES_KEY, "[]")
             
-            Log.d(TAG, "📄 Retrieved from SharedPreferences: ${notesJson.take(100)}")
+            // Исправлено: безопасный вызов с ?.let
+            val preview = notesJson?.take(100) ?: "null"
+            Log.d(TAG, "📄 Retrieved from SharedPreferences: $preview")
             
             // Форматируем список всех заметок
             val notesText = formatAllNotes(notesJson)
@@ -74,7 +78,7 @@ class NotesWidget : AppWidgetProvider() {
         }
         
         private fun formatAllNotes(notesJson: String?): String {
-            Log.d(TAG, "📝 formatAllNotes called with: ${notesJson?.take(100)}")
+            Log.d(TAG, "📝 formatAllNotes called")
             
             if (notesJson.isNullOrEmpty() || notesJson == "[]") {
                 Log.d(TAG, "⚠️ No notes found")

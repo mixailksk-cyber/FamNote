@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.widget.RemoteViews
+import android.util.Log
 import com.mkhailksk.famnote.MainActivity
 import com.mkhailksk.famnote.R
 import org.json.JSONArray
@@ -14,16 +15,23 @@ import org.json.JSONArray
 class NotesWidget : AppWidgetProvider() {
     
     companion object {
+        private const val TAG = "FamNoteWidget"
         const val PREFS_NAME = "com.mkhailksk.famnote.widget"
         const val NOTES_KEY = "widget_notes"
         
         fun updateWidgetNotes(context: Context, notesJson: String) {
+            Log.d(TAG, "📥 updateWidgetNotes called with data length: ${notesJson.length}")
+            Log.d(TAG, "📄 First 200 chars: ${notesJson.take(200)}")
+            
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             prefs.edit().putString(NOTES_KEY, notesJson).apply()
+            Log.d(TAG, "💾 Saved to SharedPreferences")
             
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val componentName = android.content.ComponentName(context, NotesWidget::class.java)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            
+            Log.d(TAG, "🔄 Updating ${appWidgetIds.size} widgets")
             
             for (appWidgetId in appWidgetIds) {
                 updateAppWidget(context, appWidgetManager, appWidgetId)
@@ -35,12 +43,18 @@ class NotesWidget : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
+            Log.d(TAG, "🔄 Updating widget ID: $appWidgetId")
+            
             val views = RemoteViews(context.packageName, R.layout.widget_notes)
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val notesJson = prefs.getString(NOTES_KEY, "[]")
             
+            Log.d(TAG, "📄 Retrieved from SharedPreferences: ${notesJson.take(100)}")
+            
             // Форматируем список всех заметок
             val notesText = formatAllNotes(notesJson)
+            Log.d(TAG, "📝 Formatted text:\n$notesText")
+            
             views.setTextViewText(R.id.widget_notes_list, notesText)
             
             // Intent для открытия приложения
@@ -56,21 +70,26 @@ class NotesWidget : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
             
             appWidgetManager.updateAppWidget(appWidgetId, views)
+            Log.d(TAG, "✅ Widget $appWidgetId updated")
         }
         
         private fun formatAllNotes(notesJson: String?): String {
+            Log.d(TAG, "📝 formatAllNotes called with: ${notesJson?.take(100)}")
+            
             if (notesJson.isNullOrEmpty() || notesJson == "[]") {
+                Log.d(TAG, "⚠️ No notes found")
                 return "• Нет заметок"
             }
             
             return try {
                 val notesArray = JSONArray(notesJson)
+                Log.d(TAG, "📊 Notes array size: ${notesArray.length()}")
+                
                 if (notesArray.length() == 0) {
                     return "• Нет заметок"
                 }
                 
                 val stringBuilder = StringBuilder()
-                // Показываем ВСЕ заметки (без ограничения)
                 for (i in 0 until notesArray.length()) {
                     val note = notesArray.getJSONObject(i)
                     val title = note.optString("title", "Без названия")
@@ -81,8 +100,12 @@ class NotesWidget : AppWidgetProvider() {
                     }
                 }
                 
-                stringBuilder.toString()
+                val result = stringBuilder.toString()
+                Log.d(TAG, "✅ Formatted ${notesArray.length()} notes")
+                result
+                
             } catch (e: Exception) {
+                Log.e(TAG, "❌ Error formatting notes", e)
                 "• Ошибка загрузки"
             }
         }
@@ -93,9 +116,20 @@ class NotesWidget : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
+        Log.d(TAG, "📱 onUpdate called for ${appWidgetIds.size} widgets")
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
+    }
+    
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        Log.d(TAG, "✅ Widget enabled")
+    }
+    
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        Log.d(TAG, "👋 Widget disabled")
     }
     
     private fun updateAppWidget(

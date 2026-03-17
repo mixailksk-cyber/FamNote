@@ -20,8 +20,9 @@ export const useNotesData = () => {
     }
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
+      console.log('📂 Loading data from AsyncStorage...');
       const [savedNotes, savedFolders, savedSettings] = await Promise.all([
         AsyncStorage.getItem('notes'),
         AsyncStorage.getItem('folders'),
@@ -32,22 +33,29 @@ export const useNotesData = () => {
         const parsed = JSON.parse(savedNotes);
         const normalized = parsed.map(n => ({ ...n, color: n.color || NOTE_COLORS[0] }));
         setNotes(normalized);
-        // Обновляем виджет при загрузке
+        console.log(`📝 Loaded ${normalized.length} notes`);
         updateWidgetData(normalized);
       }
-      if (savedFolders) setFolders(JSON.parse(savedFolders));
-      if (savedSettings) setSettings(JSON.parse(savedSettings));
+      
+      if (savedFolders) {
+        setFolders(JSON.parse(savedFolders));
+        console.log(`📁 Loaded folders`);
+      }
+      
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+        console.log(`⚙️ Loaded settings`);
+      }
     } catch (e) {
       console.log('Error loading data:', e);
     }
-  };
+  }, []);
 
   const saveNotes = useCallback(async (newNotes) => {
     const normalized = newNotes.map(n => ({ ...n, color: n.color || NOTE_COLORS[0] }));
     setNotes(normalized);
     try {
       await AsyncStorage.setItem('notes', JSON.stringify(normalized));
-      // Обновляем виджет при сохранении
       updateWidgetData(normalized);
     } catch (e) {
       if (Platform.OS === 'web') Alert.alert('Внимание', 'Данные сохранены только в памяти');
@@ -64,5 +72,13 @@ export const useNotesData = () => {
     await AsyncStorage.setItem('settings', JSON.stringify(newSettings));
   }, []);
 
-  return { notes, folders, settings, saveNotes, saveFolders, saveSettings };
+  return { 
+    notes, 
+    folders, 
+    settings, 
+    saveNotes, 
+    saveFolders, 
+    saveSettings,
+    loadData // Экспортируем loadData
+  };
 };

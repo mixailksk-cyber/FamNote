@@ -2,22 +2,19 @@
 // FILE: BL19_SettingsScreen.js
 // =====================================================
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Platform, Linking } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import Header from './BL04_Header';
 import { NOTE_COLORS, getBrandColor } from './BL02_Constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import FileSystem from './BL03_FileSystem';
+import * as FileSystem from 'expo-file-system';
 
-// Условные импорты
 let Sharing;
 if (Platform.OS !== 'web') {
   try {
     Sharing = require('expo-sharing');
-  } catch (e) {
-    console.log('Sharing not available:', e);
-  }
+  } catch (e) {}
 }
 
 const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, notes, folders, onBrandColorChange }) => {
@@ -42,38 +39,54 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
       const backupStr = JSON.stringify(backup, null, 2);
       const fileName = `FamNote_Backup_${formatDateForFilename()}.bak`;
 
+      // Web версия
       if (Platform.OS === 'web') {
         const blob = new Blob([backupStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = fileName;
-        document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
         URL.revokeObjectURL(url);
         Alert.alert('✅ Успех', 'Резервная копия создана');
         return;
       }
 
-      if (!FileSystem?.cacheDirectory) {
-        Alert.alert('❌ Ошибка', 'Файловая система недоступна');
-        return;
-      }
-
-      const fileUri = FileSystem.cacheDirectory + fileName;
-      await FileSystem.writeAsStringAsync(fileUri, backupStr);
+      // Android/iOS версия - используем documentDirectory, а не cacheDirectory
+      const fileUri = FileSystem.documentDirectory + fileName;
       
+      // Пробуем записать файл
+      await FileSystem.writeAsStringAsync(fileUri, backupStr, {
+        encoding: FileSystem.EncodingType.UTF8
+      });
+      
+      // Проверяем, что файл создался
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      if (!fileInfo.exists) {
+        throw new Error('Файл не создался');
+      }
+      
+      // Шерим файл
       if (Sharing && await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
           mimeType: 'application/json',
           dialogTitle: 'Сохранить резервную копию FamNote'
         });
       } else {
-        Alert.alert('✅ Файл создан', `Файл сохранен:\n${fileUri}`);
+        Alert.alert('✅ Файл создан', `Файл сохранен в папке приложения`);
       }
     } catch (e) {
-      Alert.alert('❌ Ошибка', 'Не удалось создать резервную копию');
+      console.log('Backup error:', e);
+      
+      // Понятное сообщение об ошибке
+      let errorMessage = 'Не удалось создать резервную копию';
+      if (e.message.includes('EACCES')) {
+        errorMessage = 'Нет доступа к файловой системе. Попробуйте перезапустить приложение.';
+      } else if (e.message.includes('ENOSPC')) {
+        errorMessage = 'Недостаточно места на устройстве';
+      }
+      
+      Alert.alert('❌ Ошибка', errorMessage);
     }
   };
 
@@ -108,6 +121,7 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
         Alert.alert('❌ Ошибка', 'Неверный формат файла');
       }
     } catch (e) {
+      console.log('Restore error:', e);
       Alert.alert('❌ Ошибка', 'Не удалось восстановить данные');
     }
   };

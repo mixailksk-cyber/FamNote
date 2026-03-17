@@ -39,8 +39,8 @@ class NotesWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val notesJson = prefs.getString(NOTES_KEY, "[]")
             
-            // Форматируем список заметок
-            val notesText = formatNotesList(notesJson)
+            // Форматируем список всех заметок
+            val notesText = formatAllNotes(notesJson)
             views.setTextViewText(R.id.widget_notes_list, notesText)
             
             // Intent для открытия приложения
@@ -58,7 +58,7 @@ class NotesWidget : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
         
-        private fun formatNotesList(notesJson: String?): String {
+        private fun formatAllNotes(notesJson: String?): String {
             if (notesJson.isNullOrEmpty() || notesJson == "[]") {
                 return "• Нет заметок"
             }
@@ -70,18 +70,15 @@ class NotesWidget : AppWidgetProvider() {
                 }
                 
                 val stringBuilder = StringBuilder()
-                for (i in 0 until Math.min(notesArray.length(), 5)) { // Показываем до 5 заметок
+                // Показываем ВСЕ заметки (без ограничения)
+                for (i in 0 until notesArray.length()) {
                     val note = notesArray.getJSONObject(i)
                     val title = note.optString("title", "Без названия")
-                    val preview = if (title.length > 20) title.substring(0, 17) + "..." else title
+                    val preview = if (title.length > 25) title.substring(0, 22) + "..." else title
                     stringBuilder.append("• ").append(preview)
-                    if (i < notesArray.length() - 1 && i < 4) {
+                    if (i < notesArray.length() - 1) {
                         stringBuilder.append("\n")
                     }
-                }
-                
-                if (notesArray.length() > 5) {
-                    stringBuilder.append("\n• +").append(notesArray.length() - 5).append(" еще")
                 }
                 
                 stringBuilder.toString()

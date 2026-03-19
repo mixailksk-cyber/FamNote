@@ -90,16 +90,24 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
   };
 
   const handleUnlock = () => {
-    // Обновляем состояние заметки (снимаем блокировку)
-    const updatedNote = { ...note, locked: false, updatedAt: Date.now() };
+    // Создаем обновленную заметку без блокировки
+    const updatedNote = { 
+      ...note, 
+      locked: false, 
+      updatedAt: Date.now() 
+    };
+    
+    // Обновляем локальное состояние
     setNote(updatedNote);
     
-    // Сохраняем изменение
+    // Сохраняем в общем хранилище
+    // Важно: передаем только данные заметки, без флага isNew
     const { isNew, ...noteToSave } = updatedNote;
     onSave(noteToSave);
     
-    // Остаемся на этом же экране, режим просмотра сохраняется
-    // isEditing не меняем (остается false)
+    // НЕ меняем экран, НЕ закрываем заметку
+    // Остаемся в режиме просмотра
+    console.log('Note unlocked, staying on view mode');
   };
 
   const handleBack = () => {
@@ -159,10 +167,6 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
     if (hasChanges) onSave({ ...noteToSave, updatedAt: Date.now() });
     else onSave(noteToSave);
     setIsEditing(false);
-    
-    if (comingFromSearch) {
-      // Остаемся на этом же экране в режиме просмотра
-    }
   };
 
   const handleEditPress = () => {

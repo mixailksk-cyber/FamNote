@@ -2,7 +2,7 @@
 // FILE: BL11_AppContent.js
 // =====================================================
 import React, { useState, useEffect } from 'react';
-import { View, StatusBar } from 'react-native';
+import { View, StatusBar, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BRAND_COLOR, getBrandColor } from './BL02_Constants';
 import { useNotesData } from './BL12_DataHooks';
@@ -29,7 +29,7 @@ const AppContent = () => {
   const [selectedFolderColor, setSelectedFolderColor] = useState(BRAND_COLOR);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [selectedNoteForAction, setSelectedNoteForAction] = useState(null);
-  const [restoreKey, setRestoreKey] = useState(0); // Ключ для принудительного обновления
+  const [restoreKey, setRestoreKey] = useState(0);
   
   const { notes, folders, settings, saveNotes, saveFolders, saveSettings, loadData } = useNotesData();
   const { sortedNotes } = useMemoizedCalculations({ notes, folders, currentFolder });
@@ -40,11 +40,65 @@ const AppContent = () => {
     notes, searchQuery, currentScreen, navigationStack, setCurrentScreen, setNavigationStack, setSelectedNote, setSearchQuery
   });
 
+  // Обработчик аппаратной кнопки "Назад" на Android
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Если открыт диалог - закрываем его
+      if (showNoteDialog) {
+        setShowNoteDialog(false);
+        setSelectedNoteForAction(null);
+        return true;
+      }
+      if (showFolderDialog) {
+        setShowFolderDialog(false);
+        return true;
+      }
+      if (showFolderSettings) {
+        setShowFolderSettings(false);
+        setSelectedFolderForSettings(null);
+        return true;
+      }
+
+      // Если не в корневом экране - возвращаемся назад
+      if (currentScreen !== 'notes' || navigationStack.length > 1) {
+        if (currentScreen === 'edit' && selectedNote) {
+          // Для экрана редактирования используем goBack из пропсов
+          // Но так как у нас нет прямого доступа, эмулируем нажатие кнопки назад
+          setCurrentScreen('notes');
+          setCurrentFolder(selectedNote.folder);
+          setSelectedNote(null);
+          setNavigationStack(prev => prev.slice(0, -1));
+        } else if (currentScreen === 'folders') {
+          setCurrentScreen('notes');
+          setNavigationStack(prev => prev.slice(0, -1));
+        } else if (currentScreen === 'settings') {
+          setCurrentScreen('notes');
+          setNavigationStack(prev => prev.slice(0, -1));
+        } else if (currentScreen === 'search') {
+          setCurrentScreen('notes');
+          setSearchQuery('');
+          setNavigationStack(prev => prev.slice(0, -1));
+        } else {
+          // Возвращаемся на предыдущий экран из стека
+          const prevScreen = navigationStack[navigationStack.length - 2] || 'notes';
+          setCurrentScreen(prevScreen);
+          setNavigationStack(prev => prev.slice(0, -1));
+        }
+        return true; // Перехватываем событие
+      }
+      
+      // На корневом экране - выходим из приложения (стандартное поведение)
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [currentScreen, navigationStack, showNoteDialog, showFolderDialog, showFolderSettings, selectedNote]);
+
   // Функция для принудительной перезагрузки данных после восстановления
   const handleDataRestored = async () => {
     console.log('🔄 Data restored, reloading...');
-    await loadData(); // Перезагружаем данные
-    setRestoreKey(prev => prev + 1); // Меняем ключ для обновления компонентов
+    await loadData();
+    setRestoreKey(prev => prev + 1);
   };
   
   const handleTogglePin = (noteId) => {
@@ -100,7 +154,7 @@ const AppContent = () => {
     switch (currentScreen) {
       case 'notes':
         return <NotesListScreen 
-          key={`notes-${restoreKey}`} // Ключ для обновления
+          key={`notes-${restoreKey}`}
           currentFolder={currentFolder} 
           sortedNotes={sortedNotes} 
           handleNotePress={(note) => handleNotePress(note, 'notes')} 
@@ -162,7 +216,7 @@ const AppContent = () => {
           notes={notes} 
           folders={folders} 
           onBrandColorChange={handleBrandColorChange}
-          onDataRestored={handleDataRestored} // Передаем обработчик
+          onDataRestored={handleDataRestored}
         />;
       
       case 'search':

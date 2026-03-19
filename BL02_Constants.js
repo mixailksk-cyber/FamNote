@@ -16,7 +16,7 @@ export const NOTE_COLORS=[
   '#E74C3C', // Красный
   '#34495E' // Темно-синий
 ];
-export const FOLDER_COLORS=['#008080','#45B7D1','#96CEB4','#9B59B6','#3498DB','#E67E22','#2ECC71','#F1C40F','#E74C3C','#34495E'];
+export const FOLDER_COLORS=[BRAND_COLOR,'#45B7D1','#96CEB4','#9B59B6','#3498DB','#E67E22','#2ECC71','#F1C40F','#E74C3C','#34495E']; // Первый цвет = цвет бренда
 export const TITLE_MAX_LENGTH=40;
 export const NOTE_MAX_LENGTH=20000;
 export const FOLDER_NAME_MAX_LENGTH=50;

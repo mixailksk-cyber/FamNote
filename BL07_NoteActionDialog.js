@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { width, getBrandColor } from './BL02_Constants';
 
-const NoteActionDialog = ({ visible, onClose, folders, onMove, onDelete, onPermanentDelete, onTogglePin, isPinned, currentFolder, settings }) => {
+const NoteActionDialog = ({ visible, onClose, folders, onMove, onDelete, onPermanentDelete, onTogglePin, onToggleLock, isPinned, isLocked, currentFolder, settings }) => {
   const availableFolders = useMemo(() => {
     return folders
       .filter(f => {
@@ -23,12 +23,21 @@ const NoteActionDialog = ({ visible, onClose, folders, onMove, onDelete, onPerma
           <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, textAlign: 'center', color: brandColor }}>Действия с заметкой</Text>
           
           {!isInTrash && (
-            <TouchableOpacity 
-              onPress={() => { onTogglePin(); onClose(); }} 
-              style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#E0E0E0', flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialIcons name={isPinned ? "push-pin" : "push-pin"} size={24} color={isPinned ? brandColor : '#999'} style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, color: '#333' }}>{isPinned ? "Открепить" : "Закрепить"}</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 8 }}>
+              <TouchableOpacity 
+                onPress={() => { onTogglePin(); onClose(); }} 
+                style={{ padding: 12, alignItems: 'center', flex: 1 }}>
+                <MaterialIcons name={isPinned ? "push-pin" : "push-pin"} size={28} color={isPinned ? brandColor : '#999'} />
+                <Text style={{ fontSize: 12, color: '#333', marginTop: 4 }}>{isPinned ? "Открепить" : "Закрепить"}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => { onToggleLock(); onClose(); }} 
+                style={{ padding: 12, alignItems: 'center', flex: 1 }}>
+                <MaterialIcons name={isLocked ? "lock" : "lock-open"} size={28} color={isLocked ? brandColor : '#999'} />
+                <Text style={{ fontSize: 12, color: '#333', marginTop: 4 }}>{isLocked ? "Разблок." : "Блокир."}</Text>
+              </TouchableOpacity>
+            </View>
           )}
           
           {availableFolders.length > 0 && (

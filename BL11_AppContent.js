@@ -62,8 +62,6 @@ const AppContent = () => {
       // Если не в корневом экране - возвращаемся назад
       if (currentScreen !== 'notes' || navigationStack.length > 1) {
         if (currentScreen === 'edit' && selectedNote) {
-          // Для экрана редактирования используем goBack из пропсов
-          // Но так как у нас нет прямого доступа, эмулируем нажатие кнопки назад
           setCurrentScreen('notes');
           setCurrentFolder(selectedNote.folder);
           setSelectedNote(null);
@@ -79,22 +77,19 @@ const AppContent = () => {
           setSearchQuery('');
           setNavigationStack(prev => prev.slice(0, -1));
         } else {
-          // Возвращаемся на предыдущий экран из стека
           const prevScreen = navigationStack[navigationStack.length - 2] || 'notes';
           setCurrentScreen(prevScreen);
           setNavigationStack(prev => prev.slice(0, -1));
         }
-        return true; // Перехватываем событие
+        return true;
       }
       
-      // На корневом экране - выходим из приложения (стандартное поведение)
       return false;
     });
 
     return () => backHandler.remove();
   }, [currentScreen, navigationStack, showNoteDialog, showFolderDialog, showFolderSettings, selectedNote]);
 
-  // Функция для принудительной перезагрузки данных после восстановления
   const handleDataRestored = async () => {
     console.log('🔄 Data restored, reloading...');
     await loadData();
@@ -103,6 +98,11 @@ const AppContent = () => {
   
   const handleTogglePin = (noteId) => {
     const updatedNotes = notes.map(n => n.id === noteId ? { ...n, pinned: !n.pinned, updatedAt: Date.now() } : n);
+    saveNotes(updatedNotes);
+  };
+
+  const handleToggleLock = (noteId) => {
+    const updatedNotes = notes.map(n => n.id === noteId ? { ...n, locked: !n.locked, updatedAt: Date.now() } : n);
     saveNotes(updatedNotes);
   };
   
@@ -288,8 +288,10 @@ const AppContent = () => {
             setShowNoteDialog(false);
             setSelectedNoteForAction(null);
           }} 
-          onTogglePin={() => handleTogglePin(selectedNoteForAction.id)} 
-          isPinned={selectedNoteForAction?.pinned || false} 
+          onTogglePin={() => handleTogglePin(selectedNoteForAction.id)}
+          onToggleLock={() => handleToggleLock(selectedNoteForAction.id)}
+          isPinned={selectedNoteForAction?.pinned || false}
+          isLocked={selectedNoteForAction?.locked || false}
           settings={settings} 
         />
       )}

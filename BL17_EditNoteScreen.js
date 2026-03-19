@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Share, InteractionManager } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Share, InteractionManager, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Header from './BL04_Header';
 import ColorPickerModal from './BL08_ColorPickerModal';
@@ -19,9 +19,11 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
     pinned: false 
   });
   const [showColor, setShowColor] = useState(false);
-  const [isEditing, setIsEditing] = useState(!selectedNote); // Для новой заметки сразу режим редактирования
+  // Для новой заметки сразу режим редактирования, для существующей - режим просмотра
+  const [isEditing, setIsEditing] = useState(!selectedNote);
   const contentInputRef = useRef(null);
   const titleInputRef = useRef(null);
+  const scrollViewRef = useRef(null);
   const comingFromSearch = useMemo(() => navigationStack[navigationStack.length - 1] === 'search', [navigationStack]);
   const hasChanges = useMemo(() => {
     if (!selectedNote) return note.title !== '' || note.content !== '' || note.color !== brandColor;
@@ -45,14 +47,12 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
     }
   }, [isEditing]);
 
-  // Для новой заметки фокус на content
+  // Для новой заметки фокус на content сразу
   useEffect(() => {
-    if (isNewNote) {
+    if (isNewNote && contentInputRef.current) {
       const focusTask = InteractionManager.runAfterInteractions(() => {
         setTimeout(() => {
-          if (contentInputRef.current) {
-            contentInputRef.current.focus();
-          }
+          contentInputRef.current.focus();
         }, 100);
       });
       return () => focusTask.cancel();
@@ -187,7 +187,13 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
         </View>
       </Header>
 
-      <View style={{ flex: 1 }}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
           <TextInput 
             ref={titleInputRef}
@@ -205,7 +211,7 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
 
         <TextInput 
           ref={contentInputRef}
-          style={{ flex: 1, fontSize: settings.fontSize, paddingHorizontal: 16, paddingVertical: 12, textAlignVertical: 'top', color: '#333' }} 
+          style={{ fontSize: settings.fontSize, paddingHorizontal: 16, paddingVertical: 12, textAlignVertical: 'top', color: '#333', minHeight: 200 }} 
           placeholder="Текст заметки..." 
           placeholderTextColor="#999" 
           multiline 
@@ -213,8 +219,9 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
           value={note.content} 
           onChangeText={t => setNote({ ...note, content: t })}
           editable={!isInTrash && isEditing}
+          scrollEnabled={true}
         />
-      </View>
+      </ScrollView>
 
       <TouchableOpacity 
         style={{ 

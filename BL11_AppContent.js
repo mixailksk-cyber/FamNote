@@ -118,7 +118,7 @@ const AppContent = () => {
     saveNotes(updatedNotes);
   };
   
-  const handleSaveNote = (updatedNote) => {
+  const handleSaveNote = (updatedNote, skipNavigation = false) => {
     if (Array.isArray(updatedNote)) {
       saveNotes(updatedNote);
       return;
@@ -135,6 +135,12 @@ const AppContent = () => {
       : [updatedNote, ...notes];
     
     saveNotes(newNotes);
+    
+    // Если это разблокировка (skipNavigation = true) - не выполняем навигацию
+    if (skipNavigation) {
+      console.log('Skipping navigation after unlock');
+      return;
+    }
     
     const comingFromSearch = navigationStack[navigationStack.length - 1] === 'search';
     setNavigationStack(prev => prev.slice(0, -1));

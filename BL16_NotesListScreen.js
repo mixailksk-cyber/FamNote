@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, FlatList, Text, TouchableOpacity } from 'react-native';
+import { View, FlatList, Text, TouchableOpacity, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Header from './BL04_Header';
 import NoteItem from './BL09_NoteItem';
 import { getBrandColor } from './BL02_Constants';
 
-const NotesListScreen = ({ currentFolder, sortedNotes, handleNotePress, setSelectedNoteForAction, setShowNoteDialog, setCurrentScreen, setSelectedNote, goToSearch, insets, settings }) => {
+const NotesListScreen = ({ currentFolder, sortedNotes, handleNotePress, setSelectedNoteForAction, setShowNoteDialog, setCurrentScreen, setSelectedNote, goToSearch, insets, settings, onEmptyTrash }) => {
   const brandColor = getBrandColor(settings);
   const isInTrash = currentFolder === 'Корзина';
 
@@ -20,10 +20,29 @@ const NotesListScreen = ({ currentFolder, sortedNotes, handleNotePress, setSelec
       updatedAt: Date.now(),
       deleted: false,
       pinned: false,
-      isNew: true // Добавляем флаг, что это новая заметка
+      isNew: true
     };
     setSelectedNote(newNote);
     setCurrentScreen('edit');
+  };
+
+  const handleEmptyTrash = () => {
+    Alert.alert(
+      'Очистить корзину',
+      'Вы уверены, что хотите безвозвратно удалить все заметки из корзины?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        { 
+          text: 'Удалить все', 
+          style: 'destructive',
+          onPress: () => {
+            if (onEmptyTrash) {
+              onEmptyTrash();
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -38,7 +57,14 @@ const NotesListScreen = ({ currentFolder, sortedNotes, handleNotePress, setSelec
         onSearchPress={goToSearch} 
         showPalette={false} 
         brandColor={brandColor}
-      />
+      >
+        {/* Дополнительная кнопка для корзины */}
+        {isInTrash && sortedNotes.length > 0 && (
+          <TouchableOpacity onPress={handleEmptyTrash} style={{ marginRight: 20 }}>
+            <MaterialIcons name="delete-sweep" size={24} color="white" />
+          </TouchableOpacity>
+        )}
+      </Header>
       
       <FlatList 
         data={sortedNotes} 

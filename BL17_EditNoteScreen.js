@@ -90,19 +90,16 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
   };
 
   const handleUnlock = () => {
-    // Создаем обновленную заметку без блокировки
     const updatedNote = { 
       ...note, 
       locked: false, 
       updatedAt: Date.now() 
     };
     
-    // Обновляем локальное состояние
     setNote(updatedNote);
     
-    // Сохраняем в общем хранилище с флагом, что это разблокировка
     const { isNew, ...noteToSave } = updatedNote;
-    onSave(noteToSave, true); // Передаем true как флаг "skipNavigation"
+    onSave(noteToSave, true);
     
     console.log('Note unlocked, staying on view mode');
   };
@@ -185,7 +182,6 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
   const buttonRight = 24;
 
   const headerTitle = isEditing ? "Редактирование" : "Просмотр";
-  // Цвет шапки = цвет заметки (или цвет бренда, если у заметки нет цвета)
   const headerColor = note.color || brandColor;
 
   return (
@@ -205,24 +201,22 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
         showSearch={false} 
         brandColor={headerColor}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {/* Кнопка замка - показывается только если заметка заблокирована и не в режиме редактирования */}
-          {isLocked && !isEditing && (
-            <TouchableOpacity onPress={handleUnlock} style={{ marginRight: 20 }}>
-              <MaterialIcons name="lock" size={24} color="white" />
-            </TouchableOpacity>
-          )}
-          
-          {/* Кнопка поделиться - всегда показывается */}
-          <TouchableOpacity onPress={handleShare} style={{ marginRight: 20 }}>
-            <MaterialIcons name="share" size={24} color="white" />
+        {/* Кнопка замка - только если заблокирована */}
+        {isLocked && !isEditing && (
+          <TouchableOpacity onPress={handleUnlock}>
+            <MaterialIcons name="lock" size={24} color="white" />
           </TouchableOpacity>
-          
-          {/* Кнопка удалить - всегда показывается */}
-          <TouchableOpacity onPress={handleDelete}>
-            <MaterialIcons name="delete" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
+        )}
+        
+        {/* Кнопка поделиться */}
+        <TouchableOpacity onPress={handleShare}>
+          <MaterialIcons name="share" size={24} color="white" />
+        </TouchableOpacity>
+        
+        {/* Кнопка удалить */}
+        <TouchableOpacity onPress={handleDelete}>
+          <MaterialIcons name="delete" size={24} color="white" />
+        </TouchableOpacity>
       </Header>
 
       <ScrollView 

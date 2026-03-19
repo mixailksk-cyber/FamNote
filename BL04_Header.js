@@ -8,6 +8,9 @@ const Header = ({ title, rightIcon, onRightPress, showBack, onBack, showSearch, 
   const insets = useSafeAreaInsets();
   const headerColor = brandColor || BRAND_COLOR;
   
+  // Преобразуем children в массив, если это не массив
+  const childrenArray = React.Children.toArray(children);
+  
   return (
     <View style={{ 
       backgroundColor: headerColor, 
@@ -29,25 +32,30 @@ const Header = ({ title, rightIcon, onRightPress, showBack, onBack, showSearch, 
       </View>
       
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        {/* Дополнительные кнопки из children */}
-        {children && React.Children.map(children, (child, index) => (
-          <View key={index} style={{ marginRight: index === React.Children.count(children) - 1 ? 0 : 20 }}>
+        {/* Дополнительные кнопки из children с отступом 20px между ними */}
+        {childrenArray.map((child, index) => (
+          <View key={index} style={{ marginRight: index < childrenArray.length - 1 ? 20 : 0 }}>
             {child}
           </View>
         ))}
         
+        {/* Стандартные кнопки с отступом 20px от предыдущих */}
+        {childrenArray.length > 0 && (showPalette || showSearch || rightIcon) && (
+          <View style={{ width: 20 }} />
+        )}
+        
         {showPalette && (
-          <TouchableOpacity onPress={onPalettePress} style={{ marginLeft: 20 }}>
+          <TouchableOpacity onPress={onPalettePress} style={{ marginRight: showSearch || rightIcon ? 20 : 0 }}>
             <MaterialIcons name="palette" size={24} color="white" />
           </TouchableOpacity>
         )}
         {showSearch && (
-          <TouchableOpacity onPress={onSearchPress} style={{ marginLeft: 20 }}>
+          <TouchableOpacity onPress={onSearchPress} style={{ marginRight: rightIcon ? 20 : 0 }}>
             <MaterialIcons name="search" size={24} color="white" />
           </TouchableOpacity>
         )}
         {rightIcon && (
-          <TouchableOpacity onPress={onRightPress} style={{ marginLeft: 20 }}>
+          <TouchableOpacity onPress={onRightPress}>
             <MaterialIcons name={rightIcon} size={24} color="white" />
           </TouchableOpacity>
         )}

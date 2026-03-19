@@ -81,9 +81,9 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
     onSave(updatedNote);
     setNavigationStack(prev => prev.slice(0, -1));
     if (comingFromSearch) {
-      setCurrentScreen('notes'); 
+      setCurrentScreen('search'); // Возвращаемся на поиск
       setCurrentFolder(note.folder); 
-      setSearchQuery('');
+      // Не очищаем searchQuery, чтобы результаты поиска остались
     } else {
       const prevScreen = navigationStack[navigationStack.length - 1] || 'notes';
       setCurrentScreen(prevScreen);
@@ -91,10 +91,15 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
   };
 
   const handleUnlock = () => {
+    // Обновляем состояние
     setNote({ ...note, locked: false });
+    
     // Сохраняем изменение блокировки
     const { isNew, ...noteToSave } = { ...note, locked: false };
     onSave({ ...noteToSave, updatedAt: Date.now() });
+    
+    // Остаемся на том же экране (не закрываем)
+    // isEditing остается false, так как мы только разблокировали заметку
   };
 
   const handleBack = () => {
@@ -109,13 +114,20 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
             onPress: () => {
               setNavigationStack(prev => prev.slice(0, -1));
               if (selectedNote && !selectedNote.isNew) {
-                setCurrentScreen('notes');
-                setCurrentFolder(selectedNote.folder);
-                setSearchQuery('');
+                // Если пришли с поиска, возвращаемся на поиск
+                if (comingFromSearch) {
+                  setCurrentScreen('search');
+                  setCurrentFolder(selectedNote.folder);
+                  // searchQuery уже есть, не очищаем
+                } else {
+                  setCurrentScreen('notes');
+                  setCurrentFolder(selectedNote.folder);
+                  setSearchQuery('');
+                }
               } else if (comingFromSearch) {
-                setCurrentScreen('notes');
+                setCurrentScreen('search');
                 setCurrentFolder(currentFolder);
-                setSearchQuery('');
+                // searchQuery уже есть, не очищаем
               } else {
                 const prevScreen = navigationStack[navigationStack.length - 1] || 'notes';
                 setCurrentScreen(prevScreen);
@@ -127,13 +139,20 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
     } else {
       setNavigationStack(prev => prev.slice(0, -1));
       if (selectedNote && !selectedNote.isNew) {
-        setCurrentScreen('notes');
-        setCurrentFolder(selectedNote.folder);
-        setSearchQuery('');
+        // Если пришли с поиска, возвращаемся на поиск
+        if (comingFromSearch) {
+          setCurrentScreen('search');
+          setCurrentFolder(selectedNote.folder);
+          // searchQuery уже есть, не очищаем
+        } else {
+          setCurrentScreen('notes');
+          setCurrentFolder(selectedNote.folder);
+          setSearchQuery('');
+        }
       } else if (comingFromSearch) {
-        setCurrentScreen('notes');
+        setCurrentScreen('search');
         setCurrentFolder(currentFolder);
-        setSearchQuery('');
+        // searchQuery уже есть, не очищаем
       } else {
         const prevScreen = navigationStack[navigationStack.length - 1] || 'notes';
         setCurrentScreen(prevScreen);
@@ -146,6 +165,11 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
     if (hasChanges) onSave({ ...noteToSave, updatedAt: Date.now() });
     else onSave(noteToSave);
     setIsEditing(false);
+    
+    // После сохранения, если пришли с поиска, остаемся на поиске
+    if (comingFromSearch) {
+      // Не меняем экран, остаемся на edit, но isEditing = false
+    }
   };
 
   const handleEditPress = () => {

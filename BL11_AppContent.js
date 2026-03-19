@@ -62,10 +62,22 @@ const AppContent = () => {
       // Если не в корневом экране - возвращаемся назад
       if (currentScreen !== 'notes' || navigationStack.length > 1) {
         if (currentScreen === 'edit' && selectedNote) {
-          setCurrentScreen('notes');
-          setCurrentFolder(selectedNote.folder);
-          setSelectedNote(null);
-          setNavigationStack(prev => prev.slice(0, -1));
+          // Проверяем, пришли ли мы с поиска
+          const cameFromSearch = navigationStack[navigationStack.length - 1] === 'search';
+          if (cameFromSearch) {
+            // Возвращаемся на поиск
+            setCurrentScreen('search');
+            setSelectedNote(null);
+            setNavigationStack(prev => prev.slice(0, -1));
+            // searchQuery не очищаем
+          } else {
+            // Возвращаемся в папку с заметкой
+            setCurrentScreen('notes');
+            setCurrentFolder(selectedNote.folder);
+            setSelectedNote(null);
+            setNavigationStack(prev => prev.slice(0, -1));
+            setSearchQuery('');
+          }
         } else if (currentScreen === 'folders') {
           setCurrentScreen('notes');
           setNavigationStack(prev => prev.slice(0, -1));

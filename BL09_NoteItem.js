@@ -30,7 +30,9 @@ const NoteItem = ({ item, onPress, onLongPress, settings, showPin }) => {
         {item.title ? (
           <>
             <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#333' }} numberOfLines={1}>{item.title}</Text>
-            <Text style={{ color: '#666', fontSize: 16 }} numberOfLines={1}>{item.content || '...'}</Text>
+            {item.content ? (
+              <Text style={{ color: '#666', fontSize: 16 }} numberOfLines={1}>{item.content}</Text>
+            ) : null}
           </>
         ) : (
           <Text style={{ color: '#666', fontSize: 16 }} numberOfLines={2}>{item.content || '...'}</Text>

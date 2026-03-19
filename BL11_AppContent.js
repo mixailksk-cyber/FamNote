@@ -117,6 +117,14 @@ const AppContent = () => {
     const updatedNotes = notes.map(n => n.id === noteId ? { ...n, locked: !n.locked, updatedAt: Date.now() } : n);
     saveNotes(updatedNotes);
   };
+
+  // Очистка корзины
+  const handleEmptyTrash = () => {
+    const updatedNotes = notes.filter(n => n.folder !== 'Корзина' && !n.deleted);
+    saveNotes(updatedNotes);
+    // Обновляем ключ для принудительного обновления списка
+    setRestoreKey(prev => prev + 1);
+  };
   
   const handleSaveNote = (updatedNote, skipNavigation = false) => {
     if (Array.isArray(updatedNote)) {
@@ -182,7 +190,8 @@ const AppContent = () => {
           setSelectedNote={setSelectedNote} 
           goToSearch={goToSearch} 
           insets={insets} 
-          settings={settings} 
+          settings={settings}
+          onEmptyTrash={handleEmptyTrash}
         />;
       
       case 'edit':
@@ -264,7 +273,8 @@ const AppContent = () => {
           setSelectedNote={setSelectedNote} 
           goToSearch={goToSearch} 
           insets={insets} 
-          settings={settings} 
+          settings={settings}
+          onEmptyTrash={handleEmptyTrash}
         />;
     }
   };

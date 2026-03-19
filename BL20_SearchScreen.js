@@ -99,7 +99,7 @@ const SearchScreen = ({
   if (!setCurrentScreen || !setSearchQuery) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Ошибка загрузки экрана поиска</Text>
+        <Text style={{ color: '#333' }}>Ошибка загрузки экрана поиска</Text>
       </View>
     );
   }
@@ -126,7 +126,8 @@ const SearchScreen = ({
             borderRadius: 8, 
             padding: 12, 
             fontSize: 16, 
-            backgroundColor: '#F5F5F5' 
+            backgroundColor: '#F5F5F5',
+            color: '#333'
           }} 
           placeholder="Введите текст для поиска" 
           value={localQuery} 

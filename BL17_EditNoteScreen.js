@@ -185,6 +185,8 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
   const buttonRight = 24;
 
   const headerTitle = isEditing ? "Редактирование" : "Просмотр";
+  // Цвет шапки = цвет заметки (или цвет бренда, если у заметки нет цвета)
+  const headerColor = note.color || brandColor;
 
   return (
     <KeyboardAvoidingView 
@@ -201,7 +203,7 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
         showPalette 
         onPalettePress={() => setShowColor(true)} 
         showSearch={false} 
-        brandColor={brandColor}
+        brandColor={headerColor} // Используем цвет заметки для шапки
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {/* Кнопка замка - показывается только если заметка заблокирована и не в режиме редактирования */}

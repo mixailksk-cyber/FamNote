@@ -19,8 +19,8 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
     pinned: false 
   });
   const [showColor, setShowColor] = useState(false);
-  // Для новой заметки сразу режим редактирования, для существующей - режим просмотра
-  const [isEditing, setIsEditing] = useState(!selectedNote);
+  // Проверяем isNew флаг или отсутствие selectedNote для новой заметки
+  const [isEditing, setIsEditing] = useState(selectedNote?.isNew || !selectedNote);
   const contentInputRef = useRef(null);
   const titleInputRef = useRef(null);
   const scrollViewRef = useRef(null);
@@ -30,7 +30,7 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
     return selectedNote.title !== note.title || selectedNote.content !== note.content || selectedNote.color !== note.color;
   }, [note, selectedNote, brandColor]);
   const isInTrash = note.folder === 'Корзина' || note.deleted === true;
-  const isNewNote = !selectedNote;
+  const isNewNote = !selectedNote || selectedNote?.isNew;
 
   // Фокус на content при включении режима редактирования
   useEffect(() => {
@@ -101,7 +101,7 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
             text: 'Выйти', 
             onPress: () => {
               setNavigationStack(prev => prev.slice(0, -1));
-              if (selectedNote) {
+              if (selectedNote && !selectedNote.isNew) {
                 setCurrentScreen('notes');
                 setCurrentFolder(selectedNote.folder);
                 setSearchQuery('');
@@ -119,7 +119,7 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
       );
     } else {
       setNavigationStack(prev => prev.slice(0, -1));
-      if (selectedNote) {
+      if (selectedNote && !selectedNote.isNew) {
         setCurrentScreen('notes');
         setCurrentFolder(selectedNote.folder);
         setSearchQuery('');
@@ -135,8 +135,10 @@ const EditNoteScreen = ({ selectedNote, currentFolder, notes, settings, navigati
   };
 
   const handleSave = () => {
-    if (hasChanges) onSave({ ...note, updatedAt: Date.now() });
-    else onSave(note);
+    // Удаляем служебный флаг isNew перед сохранением
+    const { isNew, ...noteToSave } = note;
+    if (hasChanges) onSave({ ...noteToSave, updatedAt: Date.now() });
+    else onSave(noteToSave);
     setIsEditing(false);
   };
 

@@ -15,15 +15,8 @@ class WidgetDataModule(reactContext: ReactApplicationContext) : ReactContextBase
     @ReactMethod
     fun updateWidgetNotes(notesJson: String) {
         Log.d(TAG, "📥 updateWidgetNotes called with JSON length: ${notesJson.length}")
-        Log.d(TAG, "📄 JSON preview: ${notesJson.take(200)}")
         
-        if (notesJson == "[]" || notesJson.isBlank()) {
-            Log.d(TAG, "⚠️ Empty notes array received")
-        } else {
-            Log.d(TAG, "✅ Notes array has content")
-        }
-        
-        val context = reactApplicationContext
+        val context = reactApplicationContext.applicationContext
         NotesWidget.updateWidgetNotes(context, notesJson)
     }
 }

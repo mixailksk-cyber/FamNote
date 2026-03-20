@@ -9,7 +9,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Header from './BL04_Header';
 import { NOTE_COLORS, getBrandColor } from './BL02_Constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { NativeModules } from 'react-native';
 
@@ -220,7 +220,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
     }
   };
 
-  // Функция для диагностики виджета
   const diagnoseWidget = async () => {
     const logs = [];
     const timestamp = new Date().toLocaleString('ru-RU');
@@ -228,7 +227,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
     logs.push(`🔍 Диагностика виджета ${timestamp}`);
     logs.push('='.repeat(40));
     
-    // Проверяем нативный модуль
     if (Platform.OS === 'android') {
       if (WidgetDataModule) {
         logs.push('✅ Native module WidgetDataModule доступен');
@@ -236,11 +234,9 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
         logs.push('❌ Native module WidgetDataModule НЕ доступен');
       }
       
-      // Показываем пути к файлам
       logs.push(`📁 Document directory: ${FileSystem.documentDirectory || 'null'}`);
       logs.push(`📁 Cache directory: ${FileSystem.cacheDirectory || 'null'}`);
       
-      // Проверяем файл через FileSystem
       try {
         const fileUri = FileSystem.documentDirectory + 'widget_notes.json';
         const fileInfo = await FileSystem.getInfoAsync(fileUri);
@@ -255,7 +251,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
       }
     }
     
-    // Проверяем заметки в главной папке
     const mainFolderNotes = notes.filter(n => n.folder === 'Главная' && !n.deleted);
     logs.push(`📊 Заметок в папке "Главная": ${mainFolderNotes.length}`);
     
@@ -268,7 +263,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
       logs.push('⚠️ Создайте хотя бы одну заметку в папке "Главная"');
     }
     
-    // Формируем JSON
     const widgetNotes = mainFolderNotes.map(note => ({
       id: note.id,
       title: note.title || 'Без названия',
@@ -280,7 +274,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
     logs.push(`📦 JSON для виджета (${notesJson.length} символов):`);
     logs.push(notesJson.substring(0, 500) + (notesJson.length > 500 ? '...' : ''));
     
-    // Проверяем AsyncStorage
     try {
       const savedJson = await AsyncStorage.getItem('@widget_notes');
       logs.push(`💾 В AsyncStorage: ${savedJson ? savedJson.substring(0, 100) + '...' : 'null'}`);
@@ -288,7 +281,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
       logs.push(`❌ Ошибка чтения AsyncStorage: ${e.message}`);
     }
     
-    // Пытаемся отправить данные
     if (Platform.OS === 'android' && WidgetDataModule) {
       try {
         WidgetDataModule.updateWidgetNotes(notesJson);
@@ -298,7 +290,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
       }
     }
     
-    // Показываем диалог
     Alert.alert(
       '📱 Диагностика виджета',
       logs.join('\n'),
@@ -330,7 +321,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
       />
       
       <ScrollView style={{ flex: 1, padding: 20 }}>
-        {/* Размер текста */}
         <View style={{ marginBottom: 32 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 16 }}>Размер текста</Text>
           <View style={{ backgroundColor: '#F8F9FA', borderRadius: 16, padding: 20 }}>
@@ -356,7 +346,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
           </View>
         </View>
 
-        {/* Цвет бренда */}
         <View style={{ marginBottom: 32 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 16 }}>Цвет бренда</Text>
           <View style={{ backgroundColor: '#F8F9FA', borderRadius: 16, padding: 20 }}>
@@ -380,7 +369,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
           </View>
         </View>
 
-        {/* Резервное копирование */}
         <View style={{ marginBottom: 32 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 16 }}>Резервное копирование</Text>
           <View style={{ backgroundColor: '#F8F9FA', borderRadius: 16, padding: 20, gap: 12 }}>
@@ -425,7 +413,6 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
           </View>
         </View>
 
-        {/* Диагностика виджета */}
         <View style={{ marginBottom: 32 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 16 }}>Диагностика виджета</Text>
           <View style={{ backgroundColor: '#F8F9FA', borderRadius: 16, padding: 20 }}>

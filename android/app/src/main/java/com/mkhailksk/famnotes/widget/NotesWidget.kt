@@ -39,20 +39,22 @@ class NotesWidget : AppWidgetProvider() {
                 Log.e(TAG, "Error updating widget notes", e)
             }
         }
+    }
+    
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
+    ) {
+        Log.d(TAG, "onUpdate called for ${appWidgetIds.size} widgets")
         
-        private fun updateAppWidget(
-            context: Context,
-            appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
-        ) {
+        for (appWidgetId in appWidgetIds) {
             try {
                 Log.d(TAG, "Updating widget $appWidgetId")
                 
                 val views = RemoteViews(context.packageName, R.layout.widget_notes)
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val notesJson = prefs.getString(NOTES_KEY, "[]") ?: "[]"
-                
-                Log.d(TAG, "Notes JSON: $notesJson")
                 
                 val notesText = formatAllNotes(notesJson)
                 views.setTextViewText(R.id.widget_notes_list, notesText)
@@ -75,46 +77,33 @@ class NotesWidget : AppWidgetProvider() {
                 Log.e(TAG, "Error updating widget $appWidgetId", e)
             }
         }
+    }
+    
+    private fun formatAllNotes(notesJson: String?): String {
+        if (notesJson.isNullOrEmpty() || notesJson == "[]") {
+            return "• Нет заметок"
+        }
         
-        private fun formatAllNotes(notesJson: String?): String {
-            if (notesJson.isNullOrEmpty() || notesJson == "[]") {
+        return try {
+            val notesArray = JSONArray(notesJson)
+            if (notesArray.length() == 0) {
                 return "• Нет заметок"
             }
             
-            return try {
-                val notesArray = JSONArray(notesJson)
-                if (notesArray.length() == 0) {
-                    return "• Нет заметок"
+            val stringBuilder = StringBuilder()
+            for (i in 0 until notesArray.length()) {
+                val note = notesArray.getJSONObject(i)
+                val title = note.optString("title", "Без названия")
+                val preview = if (title.length > 25) title.substring(0, 22) + "..." else title
+                stringBuilder.append("• ").append(preview)
+                if (i < notesArray.length() - 1) {
+                    stringBuilder.append("\n")
                 }
-                
-                val stringBuilder = StringBuilder()
-                for (i in 0 until notesArray.length()) {
-                    val note = notesArray.getJSONObject(i)
-                    val title = note.optString("title", "Без названия")
-                    val preview = if (title.length > 25) title.substring(0, 22) + "..." else title
-                    stringBuilder.append("• ").append(preview)
-                    if (i < notesArray.length() - 1) {
-                        stringBuilder.append("\n")
-                    }
-                }
-                stringBuilder.toString()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error formatting notes", e)
-                "• Ошибка загрузки"
             }
-        }
-    }
-    
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        Log.d(TAG, "onUpdate called for ${appWidgetIds.size} widgets")
-        
-        for (appWidgetId in appWidgetIds) {
-            // Вызываем статический метод, а не рекурсивно
-            updateAppWidget(context, appWidgetManager, appWidgetId)
+            stringBuilder.toString()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error formatting notes", e)
+            "• Ошибка загрузки"
         }
     }
     

@@ -24,6 +24,7 @@ class NotesWidget : AppWidgetProvider() {
             try {
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 prefs.edit().putString(NOTES_KEY, notesJson).apply()
+                Log.d(TAG, "💾 Saved to SharedPreferences")
                 
                 val appWidgetManager = AppWidgetManager.getInstance(context)
                 val componentName = android.content.ComponentName(context, NotesWidget::class.java)
@@ -56,6 +57,8 @@ class NotesWidget : AppWidgetProvider() {
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val notesJson = prefs.getString(NOTES_KEY, "[]") ?: "[]"
                 
+                Log.d(TAG, "Notes JSON from prefs: $notesJson")
+                
                 val notesText = formatAllNotes(notesJson)
                 views.setTextViewText(R.id.widget_notes_list, notesText)
                 
@@ -71,7 +74,7 @@ class NotesWidget : AppWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
                 
                 appWidgetManager.updateAppWidget(appWidgetId, views)
-                Log.d(TAG, "Widget $appWidgetId updated successfully")
+                Log.d(TAG, "Widget $appWidgetId updated successfully with text: $notesText")
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating widget $appWidgetId", e)
@@ -81,11 +84,14 @@ class NotesWidget : AppWidgetProvider() {
     
     private fun formatAllNotes(notesJson: String?): String {
         if (notesJson.isNullOrEmpty() || notesJson == "[]") {
+            Log.d(TAG, "No notes to display")
             return "• Нет заметок"
         }
         
         return try {
             val notesArray = JSONArray(notesJson)
+            Log.d(TAG, "Found ${notesArray.length()} notes in JSON")
+            
             if (notesArray.length() == 0) {
                 return "• Нет заметок"
             }
@@ -100,7 +106,9 @@ class NotesWidget : AppWidgetProvider() {
                     stringBuilder.append("\n")
                 }
             }
-            stringBuilder.toString()
+            val result = stringBuilder.toString()
+            Log.d(TAG, "Formatted notes: $result")
+            result
         } catch (e: Exception) {
             Log.e(TAG, "Error formatting notes", e)
             "• Ошибка загрузки"

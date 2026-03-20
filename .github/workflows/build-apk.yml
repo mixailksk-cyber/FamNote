@@ -1,53 +1,64 @@
-name: Сборка APK
+name: Clean Build
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Версия сборки (например, v1.0.0)'
-        required: false
-        default: 'manual-build'
-        type: string
+  push:
+    branches: [ main, master ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Получение кода
+      - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: ⚙️ Установка Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
-          # Убираем cache, так как нет lock-файла
+          node-version: '18'
       
-      - name: ☕ Установка JDK 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: 'temurin'
+          java-version: '17'
       
-      - name: 📱 Установка Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       
-      - name: 🚀 Установка Expo CLI
-        run: npm install -g expo-cli eas-cli
-      
-      - name: 📦 Установка зависимостей
-        # Используем npm install вместо npm ci
+      - name: Install dependencies
         run: npm install
       
-      - name: 🔨 Сборка Android APK
+      - name: Clean previous builds
         run: |
-          npx expo prebuild --clean
+          rm -rf android
+          rm -rf ios
+          rm -rf node_modules/.cache
+      
+      - name: Expo prebuild (clean)
+        run: npx expo prebuild --clean --platform android
+      
+      - name: Build Android APK with stacktrace
+        run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew clean
+          ./gradlew assembleRelease --stacktrace
+        continue-on-error: false
       
-      - name: 💾 Сохранение APK
+      - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: FamNote-APK-${{ github.event.inputs.version || 'manual' }}-${{ github.run_number }}
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: app-release
+          path: android/app/build/outputs/apk/release/*.apk
+      
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            android/build.log
+            android/app/build/reports/

@@ -1,52 +1,53 @@
-name: Clean Build
+name: Сборка APK
 
 on:
-  workflow_dispatch:  # Ручной запуск
-  push:
-    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Версия сборки (например, v1.0.0)'
+        required: false
+        default: 'manual-build'
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: 📥 Получение кода
         uses: actions/checkout@v4
       
-      - name: Setup Node.js
+      - name: ⚙️ Установка Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 20.x
+          # Убираем cache, так как нет lock-файла
       
-      - name: Setup Java
+      - name: ☕ Установка JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
           java-version: '17'
+          distribution: 'temurin'
       
-      - name: Setup Android SDK
+      - name: 📱 Установка Android SDK
         uses: android-actions/setup-android@v3
       
-      - name: Install dependencies
+      - name: 🚀 Установка Expo CLI
+        run: npm install -g expo-cli eas-cli
+      
+      - name: 📦 Установка зависимостей
+        # Используем npm install вместо npm ci
         run: npm install
       
-      - name: Clean previous builds
+      - name: 🔨 Сборка Android APK
         run: |
-          rm -rf android
-          rm -rf ios
-          rm -rf node_modules/.cache
-      
-      - name: Expo prebuild (clean)
-        run: npx expo prebuild --clean --platform android
-      
-      - name: Build Android APK
-        run: |
+          npx expo prebuild --clean
           cd android
-          ./gradlew clean
+          chmod +x gradlew
           ./gradlew assembleRelease
       
-      - name: Upload APK
+      - name: 💾 Сохранение APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: android/app/build/outputs/apk/release/*.apk
+          name: FamNote-APK-${{ github.event.inputs.version || 'manual' }}-${{ github.run_number }}
+          path: android/app/build/outputs/apk/release/app-release.apk

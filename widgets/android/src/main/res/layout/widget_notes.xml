@@ -18,21 +18,18 @@
         android:textStyle="bold"
         android:layout_marginBottom="8dp" />
 
-    <ScrollView
+    <!-- Заменяем ScrollView на TextView с maxLines -->
+    <TextView
+        android:id="@+id/widget_notes_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <TextView
-            android:id="@+id/widget_notes_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="• Загрузка..."
-            android:textSize="14sp"
-            android:textColor="#FFFFFF"
-            android:lineSpacingExtra="4dp" />
-
-    </ScrollView>
+        android:layout_weight="1"
+        android:text="• Загрузка..."
+        android:textSize="14sp"
+        android:textColor="#FFFFFF"
+        android:lineSpacingExtra="4dp"
+        android:maxLines="8"
+        android:ellipsize="end" />
 
     <TextView
         android:id="@+id/widget_hint"

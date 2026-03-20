@@ -1,12 +1,12 @@
-name: Сборка APK
+name: Build Android APK (Expo)
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Версия сборки (например, v1.0.0)'
+        description: 'Версия сборки'
         required: false
-        default: 'manual-build'
+        default: 'latest'
         type: string
 
 jobs:
@@ -14,40 +14,40 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Получение кода
+      - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: ⚙️ Установка Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
-          # Убираем cache, так как нет lock-файла
+          node-version: '20'
+          cache: 'npm'
       
-      - name: ☕ Установка JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-      
-      - name: 📱 Установка Android SDK
-        uses: android-actions/setup-android@v3
-      
-      - name: 🚀 Установка Expo CLI
-        run: npm install -g expo-cli eas-cli
-      
-      - name: 📦 Установка зависимостей
-        # Используем npm install вместо npm ci
-        run: npm install
-      
-      - name: 🔨 Сборка Android APK
+      # Убираем полную очистку, оставляем только установку
+      - name: Install dependencies
         run: |
-          npx expo prebuild --clean
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+          npx expo install --fix
+          
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          
+      # Убираем ./gradlew clean, оставляем только prebuild
+      - name: Prebuild project
+        run: npx expo prebuild --platform android --clean
+          
+      - name: Build APK
+        run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease
-      
-      - name: 💾 Сохранение APK
+          ./gradlew assembleRelease --no-daemon
+          
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: FamNote-APK-${{ github.event.inputs.version || 'manual' }}-${{ github.run_number }}
+          name: app-release-apk-${{ github.run_number }}
           path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30

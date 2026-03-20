@@ -235,34 +235,50 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
       } else {
         logs.push('❌ Native module WidgetDataModule НЕ доступен');
       }
-    } else {
-      logs.push('ℹ️ Не Android платформа');
+      
+      // Показываем пути к файлам
+      logs.push(`📁 Document directory: ${FileSystem.documentDirectory || 'null'}`);
+      logs.push(`📁 Cache directory: ${FileSystem.cacheDirectory || 'null'}`);
+      
+      // Проверяем файл через FileSystem
+      try {
+        const fileUri = FileSystem.documentDirectory + 'widget_notes.json';
+        const fileInfo = await FileSystem.getInfoAsync(fileUri);
+        logs.push(`📄 Файл ${fileUri}: ${fileInfo.exists ? 'существует, размер: ' + fileInfo.size : 'НЕ существует'}`);
+        
+        if (fileInfo.exists) {
+          const content = await FileSystem.readAsStringAsync(fileUri);
+          logs.push(`📝 Содержимое файла (первые 200 символов): ${content.substring(0, 200)}...`);
+        }
+      } catch (e) {
+        logs.push(`❌ Ошибка проверки файла: ${e.message}`);
+      }
     }
     
     // Проверяем заметки в главной папке
     const mainFolderNotes = notes.filter(n => n.folder === 'Главная' && !n.deleted);
     logs.push(`📊 Заметок в папке "Главная": ${mainFolderNotes.length}`);
     
-    if (mainFolderNotes.length === 0) {
-      logs.push('⚠️ Создайте хотя бы одну заметку в папке "Главная"');
-    } else {
+    if (mainFolderNotes.length > 0) {
       logs.push('📝 Список заметок:');
       mainFolderNotes.forEach((note, index) => {
         logs.push(`  ${index + 1}. ${note.title || 'Без названия'} (ID: ${note.id})`);
       });
+    } else {
+      logs.push('⚠️ Создайте хотя бы одну заметку в папке "Главная"');
     }
     
-    // Формируем JSON для виджета
+    // Формируем JSON
     const widgetNotes = mainFolderNotes.map(note => ({
       id: note.id,
       title: note.title || 'Без названия',
-      content: note.content || '...',
+      content: (note.content || '').substring(0, 50),
       date: note.updatedAt || note.createdAt || Date.now()
     }));
     
     const notesJson = JSON.stringify(widgetNotes);
     logs.push(`📦 JSON для виджета (${notesJson.length} символов):`);
-    logs.push(notesJson);
+    logs.push(notesJson.substring(0, 500) + (notesJson.length > 500 ? '...' : ''));
     
     // Проверяем AsyncStorage
     try {
@@ -272,18 +288,17 @@ const SettingsScreen = ({ setCurrentScreen, goToSearch, settings, saveSettings, 
       logs.push(`❌ Ошибка чтения AsyncStorage: ${e.message}`);
     }
     
-    // Пытаемся вызвать нативный модуль
+    // Пытаемся отправить данные
     if (Platform.OS === 'android' && WidgetDataModule) {
       try {
-        logs.push('📤 Отправляем данные в нативный модуль...');
         WidgetDataModule.updateWidgetNotes(notesJson);
-        logs.push('✅ Данные отправлены');
+        logs.push('✅ Данные отправлены в нативный модуль');
       } catch (e) {
         logs.push(`❌ Ошибка отправки: ${e.message}`);
       }
     }
     
-    // Показываем диалог с логами
+    // Показываем диалог
     Alert.alert(
       '📱 Диагностика виджета',
       logs.join('\n'),

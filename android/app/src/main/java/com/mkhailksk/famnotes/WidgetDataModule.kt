@@ -14,9 +14,19 @@ class WidgetDataModule(reactContext: ReactApplicationContext) : ReactContextBase
     
     @ReactMethod
     fun updateWidgetNotes(notesJson: String) {
-        Log.d(TAG, "📥 updateWidgetNotes called with JSON length: ${notesJson.length}")
+        Log.d(TAG, "📥 updateWidgetNotes called")
+        Log.d(TAG, "JSON length: ${notesJson.length}")
         
-        val context = reactApplicationContext.applicationContext
-        NotesWidget.updateWidgetNotes(context, notesJson)
+        try {
+            val context = reactApplicationContext.applicationContext
+            NotesWidget.updateWidgetNotes(context, notesJson)
+            Log.d(TAG, "✅ Widget updated successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error updating widget", e)
+        }
+    }
+    
+    init {
+        Log.d(TAG, "✅ WidgetDataModule initialized")
     }
 }

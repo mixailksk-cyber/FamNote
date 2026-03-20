@@ -34,6 +34,7 @@ export const useNotesData = () => {
         const normalized = parsed.map(n => ({ ...n, color: n.color || NOTE_COLORS[0] }));
         setNotes(normalized);
         console.log(`📝 Loaded ${normalized.length} notes`);
+        // Обновляем виджет при загрузке
         updateWidgetData(normalized);
       }
       
@@ -56,6 +57,8 @@ export const useNotesData = () => {
     setNotes(normalized);
     try {
       await AsyncStorage.setItem('notes', JSON.stringify(normalized));
+      console.log(`💾 Saved ${normalized.length} notes, updating widget...`);
+      // Обновляем виджет при сохранении
       updateWidgetData(normalized);
     } catch (e) {
       if (Platform.OS === 'web') Alert.alert('Внимание', 'Данные сохранены только в памяти');
@@ -79,6 +82,6 @@ export const useNotesData = () => {
     saveNotes, 
     saveFolders, 
     saveSettings,
-    loadData // Экспортируем loadData
+    loadData
   };
 };

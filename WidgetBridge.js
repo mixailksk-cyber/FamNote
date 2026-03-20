@@ -15,16 +15,8 @@ export const updateWidgetData = async (notes) => {
       return;
     }
 
-    console.log(`📊 [WidgetBridge] Total notes: ${notes.length}`);
-
-    // Берем только заметки из папки "Главная" (не удаленные)
     const mainFolderNotes = notes
-      .filter(note => {
-        const isMain = note.folder === 'Главная';
-        const notDeleted = !note.deleted;
-        console.log(`📝 [WidgetBridge] Note ${note.id}: folder=${note.folder}, deleted=${note.deleted}, isMain=${isMain}, notDeleted=${notDeleted}`);
-        return isMain && notDeleted;
-      })
+      .filter(note => note.folder === 'Главная' && !note.deleted)
       .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
       .map(note => ({
         id: note.id,
@@ -33,23 +25,23 @@ export const updateWidgetData = async (notes) => {
         date: note.updatedAt || note.createdAt || Date.now()
       }));
     
-    console.log(`✅ [WidgetBridge] Filtered notes for widget: ${mainFolderNotes.length}`);
-    
     const notesJson = JSON.stringify(mainFolderNotes);
-    console.log(`📦 [WidgetBridge] JSON: ${notesJson}`);
+    console.log(`✅ [WidgetBridge] Filtered ${mainFolderNotes.length} notes`);
     
-    // Сохраняем в AsyncStorage для резерва
+    // Сохраняем в AsyncStorage
     await AsyncStorage.setItem('@widget_notes', notesJson);
     console.log('💾 [WidgetBridge] Saved to AsyncStorage');
     
-    // Отправляем в нативный модуль
-    if (Platform.OS === 'android') {
-      if (WidgetDataModule) {
-        console.log('📱 [WidgetBridge] Sending to native module');
+    // Пытаемся отправить в нативный модуль (если доступен)
+    if (Platform.OS === 'android' && WidgetDataModule) {
+      try {
         WidgetDataModule.updateWidgetNotes(notesJson);
-      } else {
-        console.log('❌ [WidgetBridge] WidgetDataModule not available');
+        console.log('📱 [WidgetBridge] Sent to native module');
+      } catch (e) {
+        console.log('❌ [WidgetBridge] Native module error:', e);
       }
+    } else {
+      console.log('⚠️ [WidgetBridge] Native module not available, using AsyncStorage only');
     }
     
   } catch (error) {

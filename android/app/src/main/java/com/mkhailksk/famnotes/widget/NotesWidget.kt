@@ -5,7 +5,6 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.widget.RemoteViews
 import android.util.Log
 import com.mkhailksk.famnotes.MainActivity
@@ -20,23 +19,22 @@ class NotesWidget : AppWidgetProvider() {
         private const val NOTES_KEY = "widget_notes"
         
         fun updateWidgetNotes(context: Context, notesJson: String) {
-            Log.d(TAG, "📥 updateWidgetNotes called with ${notesJson.length} chars")
+            Log.d(TAG, "📥 updateWidgetNotes called")
             
             try {
-                // Сохраняем в SharedPreferences
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 prefs.edit().putString(NOTES_KEY, notesJson).apply()
                 
-                // Обновляем все виджеты
                 val appWidgetManager = AppWidgetManager.getInstance(context)
                 val componentName = android.content.ComponentName(context, NotesWidget::class.java)
                 val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
                 
                 Log.d(TAG, "Updating ${appWidgetIds.size} widgets")
                 
-                for (appWidgetId in appWidgetIds) {
-                    updateAppWidget(context, appWidgetManager, appWidgetId)
-                }
+                // Создаем экземпляр и вызываем onUpdate
+                val widget = NotesWidget()
+                widget.onUpdate(context, appWidgetManager, appWidgetIds)
+                
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating widget notes", e)
             }
@@ -48,14 +46,17 @@ class NotesWidget : AppWidgetProvider() {
             appWidgetId: Int
         ) {
             try {
+                Log.d(TAG, "Updating widget $appWidgetId")
+                
                 val views = RemoteViews(context.packageName, R.layout.widget_notes)
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val notesJson = prefs.getString(NOTES_KEY, "[]") ?: "[]"
                 
+                Log.d(TAG, "Notes JSON: $notesJson")
+                
                 val notesText = formatAllNotes(notesJson)
                 views.setTextViewText(R.id.widget_notes_list, notesText)
                 
-                // Создаем Intent для открытия приложения
                 val intent = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
@@ -90,7 +91,6 @@ class NotesWidget : AppWidgetProvider() {
                 for (i in 0 until notesArray.length()) {
                     val note = notesArray.getJSONObject(i)
                     val title = note.optString("title", "Без названия")
-                    // Обрезаем длинные названия
                     val preview = if (title.length > 25) title.substring(0, 22) + "..." else title
                     stringBuilder.append("• ").append(preview)
                     if (i < notesArray.length() - 1) {
@@ -111,7 +111,9 @@ class NotesWidget : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         Log.d(TAG, "onUpdate called for ${appWidgetIds.size} widgets")
+        
         for (appWidgetId in appWidgetIds) {
+            // Вызываем статический метод, а не рекурсивно
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
     }
